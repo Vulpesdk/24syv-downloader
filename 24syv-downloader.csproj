@@ -13,4 +13,10 @@
     <PackageReference Include="ShellProgressBar" Version="5.2.0" />
   </ItemGroup>
 
+  <PropertyGroup>
+      <PublishSingleFile>true</PublishSingleFile>
+      <DebugType>embedded</DebugType>
+      <PublishTrimmed>true</PublishTrimmed>
+  </PropertyGroup>
+
 </Project>
