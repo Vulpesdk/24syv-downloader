@@ -13,8 +13,12 @@ internal class Program
 
             string[] txtFiles = Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory, "*.txt").Select(x => Path.GetFileName(x)).ToArray();
 
-            string[] selectedFiles = Prompt.MultiSelect("Vælg relevante tekstfiler vha. piletast op/ned, marker filer med mellemrum og tryk enter\n", txtFiles).ToArray();
+            if (txtFiles.Length == 0)
+            {
+                throw new Exception("Placer venligst minimum 1 dataliste (txt-fil) ved siden af exe-filen");
+            }
 
+            string[] selectedFiles = Prompt.MultiSelect("Vælg relevante tekstfiler vha. piletast op/ned, marker filer med mellemrum og tryk enter\n", txtFiles).ToArray();
 
             foreach (var file in selectedFiles)
             {
@@ -25,7 +29,7 @@ internal class Program
                     ProgressCharacter = '─',
                     ProgressBarOnBottom = true
                 };
-                using (var pbar = new ProgressBar(lines.Length, "Downloader: "+file, options))
+                using (var pbar = new ProgressBar(lines.Length, "Downloader: " + file, options))
                 {
                     using var client = new HttpClient();
 
