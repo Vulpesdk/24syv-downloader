@@ -45,7 +45,7 @@ jobs:
         run: mkdir binaries
 
       - name: Publish for Windows (64-bit)
-        run: dotnet publish --configuration Release --output binaries/win-x64 --self-contained --runtime win-x64
+        run: dotnet publish --configuration Release --output binaries --self-contained --runtime win-x64
 
   upload:
     needs: publish
