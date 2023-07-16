@@ -1,4 +1,4 @@
-name: Publish Binaries
+name: Build and Release
 
 on:
   push:
@@ -6,43 +6,38 @@ on:
       - main
 
 jobs:
-  build-publish:
+  build:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
 
-      - name: Setup .NET Core
+      - name: Setup .NET
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: '6.0'
+          dotnet-version: 6.0.x
 
-      - name: Build and Publish for Windows x64
-        run: dotnet publish -r win-x64 --configuration Release -o binaries/win-x64
+      - name: Build and Publish
+        run: dotnet publish -c Release -o ./binaries
 
       - name: Create Release
         id: create-release
         uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v2.0
-          release_name: Release v2.0
+          tag_name: v1.0.0
+          release_name: Release v1.0.0
           draft: false
           prerelease: false
-          token: ${{ secrets.PAT }}
 
-      - name: Upload Binaries
-        id: upload-binaries
-        uses: actions/upload-artifact@v2
-        with:
-          name: Windows Binaries
-          path: binaries/win-x64
-
-      - name: Attach Release Assets
-        id: attach-assets
+      - name: Upload Artifacts
         uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create-release.outputs.upload_url }}
-          asset_path: ${{ steps.upload-binaries.outputs.artifact_paths }}
-          asset_name: binaries-win-x64.zip
+          asset_path: ./binaries
+          asset_name: binaries.zip
           asset_content_type: application/zip
