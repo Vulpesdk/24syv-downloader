@@ -24,9 +24,6 @@ jobs:
       - name: Build binaries
         run: dotnet build --configuration Release
 
-      - name: Publish binaries
-        run: dotnet publish --configuration Release --output ./binaries --self-contained true --runtime linux-x64
-
   publish:
     runs-on: ubuntu-latest
 
@@ -47,14 +44,8 @@ jobs:
       - name: Create binaries directory
         run: mkdir binaries
 
-      - name: Publish for macOS
-        run: dotnet publish --configuration Release --output ./binaries --self-contained true --runtime osx-x64
-
-      - name: Publish for Windows (32-bit)
-        run: dotnet publish --configuration Release --output ./binaries --self-contained true --runtime win-x86
-
       - name: Publish for Windows (64-bit)
-        run: dotnet publish --configuration Release --output ./binaries --self-contained true --runtime win-x64
+        run: dotnet publish --configuration Release --output binaries --self-contained --runtime win-x64
 
   upload:
     needs: publish
