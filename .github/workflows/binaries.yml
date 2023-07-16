@@ -44,6 +44,9 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
 
+      - name: Create binaries directory
+        run: mkdir binaries
+
       - name: Publish for macOS
         run: dotnet publish --configuration Release --output ./binaries --self-contained true --runtime osx-x64
 
@@ -59,6 +62,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '6.0'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
       - name: Upload binaries
         uses: actions/upload-artifact@v2
         with:
