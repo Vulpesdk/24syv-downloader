@@ -1,4 +1,4 @@
-name: Build
+name: Build and Publish
 
 on:
   push:
@@ -16,7 +16,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: '6.0'  # Use the '6.0' tag to fetch the latest stable version
+          dotnet-version: '6.0'
 
       - name: Restore dependencies
         run: dotnet restore
@@ -26,3 +26,41 @@ jobs:
 
       - name: Publish binaries
         run: dotnet publish --configuration Release --output ./binaries --self-contained true --runtime linux-x64
+
+  publish:
+    runs-on: ubuntu-latest
+
+    needs: build
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '6.0'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Publish for macOS
+        run: dotnet publish --configuration Release --output ./binaries --self-contained true --runtime osx-x64
+
+      - name: Publish for Windows (32-bit)
+        run: dotnet publish --configuration Release --output ./binaries --self-contained true --runtime win-x86
+
+      - name: Publish for Windows (64-bit)
+        run: dotnet publish --configuration Release --output ./binaries --self-contained true --runtime win-x64
+
+  upload:
+    needs: publish
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Upload binaries
+        uses: actions/upload-artifact@v2
+        with:
+          name: binaries
+          path: binaries
