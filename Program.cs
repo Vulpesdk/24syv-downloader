@@ -3,100 +3,151 @@ using ShellProgressBar;
 
 internal class Program
 {
-    private static void Main(string[] args)
+    /// <summary>
+    ///     Entry point of the application.
+    /// </summary>
+    private static async Task Main()
     {
-        string url = "Udefineret";
-        string path = "Udefineret";
-
         try
         {
+            var txtFiles = GetTextFiles();
 
-            string[] txtFiles = Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory, "*.txt").Select(x => Path.GetFileName(x)).ToArray();
+            var pageSize = GetOptimalPageSize();
+            var selectedFiles = SelectFiles(txtFiles, pageSize);
 
-            if (txtFiles.Length == 0)
-            {
-                throw new Exception("Placer venligst minimum 1 dataliste (txt-fil) ved siden af exe-filen");
-            }
+            using var mainProgressBar = CreateMainProgressBar(selectedFiles.Length);
+            await DownloadFiles(selectedFiles, mainProgressBar);
 
-            string[] selectedFiles = Prompt.MultiSelect("Vælg relevante tekstfiler vha. piletast op/ned, marker filer med mellemrum og tryk enter\n", txtFiles).ToArray();
-
-            foreach (var file in selectedFiles)
-            {
-                string[] lines = File.ReadAllLines(file);
-
-                var options = new ProgressBarOptions
-                {
-                    ProgressCharacter = '─',
-                    ProgressBarOnBottom = true
-                };
-                using (var pbar = new ProgressBar(lines.Length, "Downloader: " + file, options))
-                {
-                    using var client = new HttpClient();
-
-                    foreach (var line in lines)
-                    {
-                        string[] content = line.Split('\t');
-
-                        url = content[0];
-                        path = content[1];
-
-                        if (File.Exists(path))
-                        {
-                            pbar.Tick();
-                            continue;
-                        }
-
-                        string? directoryName = Path.GetDirectoryName(path);
-
-                        if (directoryName != null)
-                        {
-                            using (var s = client.GetStreamAsync(url))
-                            {
-
-                                string tempfile = Path.GetTempFileName();
-                                using var fs = new FileStream(tempfile, FileMode.OpenOrCreate);
-
-                                s.Result.CopyTo(fs);
-
-                                fs.Close();
-
-                                Directory.CreateDirectory(directoryName);
-
-                                File.Move(tempfile, path);
-                            }
-                            pbar.Tick();
-                        }
-                    }
-                }
-            }
-
-            while (true)
-            {
-                Console.Write("Download af alle episoder er fuldført :D (tryk på enter for at lukke)\n");
-
-                ConsoleKeyInfo keyPress = Console.ReadKey(intercept: true);
-                while (keyPress.Key == ConsoleKey.Enter)
-                {
-                    Environment.Exit(0);
-                }
-            }
+            Console.WriteLine("Download af alle episoder er fuldført :D (tryk på enter for at lukke)");
+            Console.ReadLine();
         }
         catch (Exception e)
         {
-            while (true)
-            {
-                Console.Write("Noget gik galt! Se fejlen nedenfor (tryk på enter for at lukke)\n");
-                Console.Write("Download url: " + url + "\n");
-                Console.Write("Fil path: " + path + "\n");
-                Console.Write("Genereret fejlbesked: " + e.Message);
-
-                ConsoleKeyInfo keyPress = Console.ReadKey(intercept: true);
-                while (keyPress.Key == ConsoleKey.Enter)
-                {
-                    Environment.Exit(0);
-                }
-            }
+            Console.WriteLine("Noget gik galt! Se fejlen nedenfor");
+            Console.WriteLine("Genereret fejlbesked: " + e.Message);
+            Console.ReadLine();
         }
     }
-}
 
+    /// <summary>
+    ///     Retrieves the list of text files in the current directory.
+    /// </summary>
+    /// <returns>The array of text file paths.</returns>
+    private static IEnumerable<string> GetTextFiles()
+    {
+        var txtFiles = Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory, "*.txt")
+            .Select(Path.GetFileName).ToArray();
+
+        if (txtFiles.Length == 0)
+            throw new Exception("Placer venligst minimum 1 dataliste (txt-fil) ved siden af exe-filen");
+
+        return txtFiles!;
+    }
+
+    /// <summary>
+    ///     Prompts the user to select files from the provided list.
+    /// </summary>
+    /// <param name="txtFiles">The array of text file paths.</param>
+    /// <param name="pageSize">The page size for displaying prompts.</param>
+    /// <returns>The array of selected file paths.</returns>
+    private static string[] SelectFiles(IEnumerable<string> txtFiles, int pageSize)
+    {
+        return Prompt.MultiSelect(
+            "Brug venstre/højre pil for at navigere sider. Marker med mellemrum og tryk enter for at bekræfte",
+            txtFiles,
+            pageSize).ToArray();
+    }
+
+    /// <summary>
+    ///     Creates the main progress bar for the file download process.
+    /// </summary>
+    /// <param name="totalFiles">The total number of files to download.</param>
+    /// <returns>The created main progress bar.</returns>
+    private static ProgressBar CreateMainProgressBar(int totalFiles)
+    {
+        var mainProgressBarOptions = new ProgressBarOptions
+        {
+            ForegroundColor = ConsoleColor.Green,
+            BackgroundColor = ConsoleColor.DarkGreen,
+            ProgressCharacter = '─'
+        };
+
+        return new ProgressBar(totalFiles, "Downloading Files", mainProgressBarOptions);
+    }
+
+    /// <summary>
+    ///     Downloads the selected files and updates the main progress bar.
+    /// </summary>
+    /// <param name="selectedFiles">The array of selected file paths.</param>
+    /// <param name="mainProgressBar">The main progress bar.</param>
+    /// <returns>The task representing the download process.</returns>
+    private static async Task DownloadFiles(IReadOnlyCollection<string> selectedFiles, ProgressBarBase mainProgressBar)
+    {
+        var tasks = selectedFiles.Select(file => ProcessFileAsync(file, mainProgressBar)).ToArray();
+        await Task.WhenAll(tasks);
+        mainProgressBar.Tick(selectedFiles.Count); // Update the main progress bar to 100%
+    }
+
+    /// <summary>
+    ///     Processes the specified file asynchronously and updates the child progress bar.
+    /// </summary>
+    /// <param name="file">The file to process.</param>
+    /// <param name="mainProgressBar">The main progress bar.</param>
+    private static async Task ProcessFileAsync(string? file, ProgressBarBase mainProgressBar)
+    {
+        var lines = await File.ReadAllLinesAsync(file);
+        var childProgressBarOptions = new ProgressBarOptions
+        {
+            ForegroundColor = ConsoleColor.Yellow,
+            BackgroundColor = ConsoleColor.DarkYellow,
+            ProgressCharacter = '─'
+        };
+
+        using var childProgressBar = mainProgressBar.Spawn(lines.Length, "Downloading: " + Path.GetFileName(file),
+            childProgressBarOptions);
+        foreach (var line in lines)
+        {
+            var content = line.Split('\t');
+            var url = content[0];
+            var path = content[1];
+
+            if (File.Exists(path))
+            {
+                childProgressBar.Tick();
+                continue;
+            }
+
+            var directoryName = Path.GetDirectoryName(path);
+
+            if (directoryName != null)
+            {
+                using var client = new HttpClient();
+                await using var s = await client.GetStreamAsync(url);
+                var tempfile = Path.GetTempFileName();
+                await using (var fs = new FileStream(tempfile, FileMode.OpenOrCreate))
+                {
+                    await s.CopyToAsync(fs);
+                }
+
+                Directory.CreateDirectory(directoryName);
+                File.Move(tempfile, path);
+            }
+
+            childProgressBar.Tick();
+        }
+
+        mainProgressBar.Tick(); // Update the main progress bar after all child progress is complete
+    }
+
+    /// <summary>
+    ///     Calculates the optimal page size for displaying prompts.
+    /// </summary>
+    /// <returns>The optimal page size.</returns>
+    private static int GetOptimalPageSize()
+    {
+        var windowHeight = Console.WindowHeight;
+        var pageSize = windowHeight - 5;
+
+        return pageSize > 0 ? pageSize : 1;
+    }
+}
