@@ -16,7 +16,7 @@ jobs:
     - name: Set up .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: 6.0
 
     - name: Build for Windows
       run: dotnet publish -r win-x64 --configuration Release /p:PublishSingleFile=true
@@ -39,8 +39,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: v1.0.0
-        release_name: Release v1.0.0
+        tag_name: v1.1
+        release_name: Release v1.1
         draft: false
         prerelease: false
 
