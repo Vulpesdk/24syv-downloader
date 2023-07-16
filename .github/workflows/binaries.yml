@@ -1,9 +1,9 @@
 name: Build and Release
 
 on:
-  push:
-    branches:
-      - main
+  repository_dispatch:
+    types:
+      - manual-trigger
 
 jobs:
   build:
