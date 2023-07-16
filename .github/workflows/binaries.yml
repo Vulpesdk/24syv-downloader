@@ -53,3 +53,4 @@ jobs:
         asset_path: |
           ${{ needs.build.outputs.artifacts }}/YourAppName.exe
         asset_name: YourAppName
+        asset_content_type: application/octet-stream
