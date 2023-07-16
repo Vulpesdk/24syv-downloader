@@ -19,16 +19,16 @@ jobs:
           dotnet-version: '6.0'
 
       - name: Build and Publish for Linux x64
-        run: dotnet publish -r linux-x64 --configuration Release -o binaries/linux-x64 --self-contained true
+        run: dotnet publish -r linux-x64 --configuration Release -o ${{ runner.workspace }}/binaries/linux-x64 --self-contained true
 
       - name: Build and Publish for macOS x64
-        run: dotnet publish -r osx-x64 --configuration Release -o binaries/osx-x64 --self-contained true
+        run: dotnet publish -r osx-x64 --configuration Release -o ${{ runner.workspace }}/binaries/osx-x64 --self-contained true
 
       - name: Build and Publish for Windows x64
-        run: dotnet publish -r win-x64 --configuration Release -o binaries/win-x64 --self-contained true
+        run: dotnet publish -r win-x64 --configuration Release -o ${{ runner.workspace }}/binaries/win-x64 --self-contained true
 
       - name: Build and Publish for Windows x86
-        run: dotnet publish -r win-x86 --configuration Release -o binaries/win-x86 --self-contained true
+        run: dotnet publish -r win-x86 --configuration Release -o ${{ runner.workspace }}/binaries/win-x86 --self-contained true
 
   release:
     needs: build-publish
@@ -52,7 +52,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: binaries/linux-x64/24syv-downloader
+          asset_path: ${{ runner.workspace }}/binaries/linux-x64/24syv-downloader
           asset_name: 24syv-downloader-linux-x64
           asset_content_type: application/octet-stream
 
@@ -62,7 +62,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: binaries/osx-x64/24syv-downloader
+          asset_path: ${{ runner.workspace }}/binaries/osx-x64/24syv-downloader
           asset_name: 24syv-downloader-osx-x64
           asset_content_type: application/octet-stream
 
@@ -72,7 +72,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: binaries/win-x64/24syv-downloader.exe
+          asset_path: ${{ runner.workspace }}/binaries/win-x64/24syv-downloader.exe
           asset_name: 24syv-downloader-win-x64.exe
           asset_content_type: application/octet-stream
 
@@ -82,6 +82,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: binaries/win-x86/24syv-downloader.exe
+          asset_path: ${{ runner.workspace }}/binaries/win-x86/24syv-downloader.exe
           asset_name: 24syv-downloader-win-x86.exe
           asset_content_type: application/octet-stream
