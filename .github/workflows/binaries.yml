@@ -29,6 +29,7 @@ jobs:
           release_name: Release v2.0
           draft: false
           prerelease: false
+          token: ${{ secrets.PAT }}
 
       - name: Upload Binaries
         id: upload-binaries
