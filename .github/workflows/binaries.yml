@@ -19,16 +19,16 @@ jobs:
           dotnet-version: '6.0'
 
       - name: Build and Publish for Linux x64
-        run: dotnet publish -r linux-x64 --configuration Release -o binaries/linux-x64
+        run: dotnet publish -r linux-x64 --configuration Release -o binaries/linux-x64 --self-contained true
 
       - name: Build and Publish for macOS x64
-        run: dotnet publish -r osx-x64 --configuration Release -o binaries/osx-x64
+        run: dotnet publish -r osx-x64 --configuration Release -o binaries/osx-x64 --self-contained true
 
       - name: Build and Publish for Windows x64
-        run: dotnet publish -r win-x64 --configuration Release -o binaries/win-x64
+        run: dotnet publish -r win-x64 --configuration Release -o binaries/win-x64 --self-contained true
 
       - name: Build and Publish for Windows x86
-        run: dotnet publish -r win-x86 --configuration Release -o binaries/win-x86
+        run: dotnet publish -r win-x86 --configuration Release -o binaries/win-x86 --self-contained true
 
   release:
     needs: build-publish
@@ -45,12 +45,6 @@ jobs:
         release_name: Release v1.2
         draft: false
         prerelease: false
-
-    - name: Download Release Assets
-      uses: actions/download-artifact@v2
-      with:
-        name: Windows Binaries
-        path: binaries/win-x64
 
     - name: Upload Release Assets - Linux
       uses: actions/upload-release-asset@v1
