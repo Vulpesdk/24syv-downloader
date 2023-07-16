@@ -52,3 +52,4 @@ jobs:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: |
           ${{ needs.build.outputs.artifacts }}/YourAppName.exe
+        asset_name: YourAppName
