@@ -1,4 +1,4 @@
-name: Build and Publish Binary
+name: Publish Binaries
 
 on:
   push:
@@ -6,41 +6,23 @@ on:
       - main
 
 jobs:
-  build:
-    runs-on: windows-latest
+  build-publish:
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v2
 
-      - name: Setup .NET
+      - name: Setup .NET Core
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: '6.0'
 
-      - name: Restore dependencies
-        run: dotnet restore
+      - name: Build and Publish for Windows x64
+        run: dotnet publish -r win-x64 --configuration Release -o binaries/win-x64
 
-      - name: Build binary
-        run: dotnet publish --configuration Release --output binaries --self-contained --runtime win-x64
-
-  upload:
-    needs: build
-
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: Create artifacts directory
-        run: mkdir artifacts
-
-      - name: Copy binaries
-        run: cp -r binaries/. artifacts/
-
-      - name: Upload binaries
+      - name: Upload Binaries
         uses: actions/upload-artifact@v2
         with:
-          name: binaries
-          path: artifacts/
+          name: Windows Binaries
+          path: binaries/win-x64
