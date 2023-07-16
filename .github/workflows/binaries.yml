@@ -43,13 +43,18 @@ jobs:
         draft: false
         prerelease: false
 
+    - name: Download Release Assets
+      uses: actions/download-artifact@v2
+      with:
+        name: Windows Binaries
+        path: binaries
+
     - name: Upload Release Assets
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: |
-          ${{ needs.build.outputs.artifacts }}/24syv-downloader.exe
-        asset_name: 24syv-downloader
+        asset_path: binaries/24syv-downloader.exe
+        asset_name: 24syv-downloader.exe
         asset_content_type: application/octet-stream
