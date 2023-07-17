@@ -51,7 +51,7 @@ jobs:
       - name: Upload Binary Archive
         uses: actions/upload-artifact@v2
         with:
-          name: 24syv-downloader-all-binaries
+          name: All Binaries Archive
           path: 24syv-downloader-all-binaries.zip
 
       - name: Upload Windows x64 Binaries
@@ -98,7 +98,7 @@ jobs:
       - name: Download Binary Archive
         uses: actions/download-artifact@v2
         with:
-          name: 24syv-downloader-all-binaries
+          name: All Binaries Archive
           path: binaries
 
       - name: Upload Binary Archive
