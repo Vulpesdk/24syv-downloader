@@ -79,7 +79,7 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.tag_name || 'test' }}
           release_name: ${{ github.event.inputs.release_name || 'test' }}
-          draft: ${{ github.event.inputs.draft || 'true' }}
+          draft: ${{ github.event.inputs.draft }}
           prerelease: false
           body: ${{ github.event.inputs.release_body }}
 
