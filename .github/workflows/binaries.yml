@@ -42,16 +42,11 @@ jobs:
       - name: Build and Publish for macOS x64
         run: dotnet publish -r osx-x64 --configuration Release -p:PublishSingleFile=true -p:PublishTrimmed=true -o binaries/osx-x64 /p:SelfContained=true
 
-      - name: Create Binary Archive
-        run: |
-          zip -r binaries/24syv-downloader-binaries.zip binaries/
-        working-directory: ${{ github.workspace }}
-
       - name: Upload Binary Archive
         uses: actions/upload-artifact@v2
         with:
-          name: 24syv-downloader-binaries
-          path: binaries/24syv-downloader-binaries.zip
+          name: 24syv-downloader-all-binaries
+          path: binaries/
 
       - name: Upload Windows x64 Binaries
         uses: actions/upload-artifact@v2
