@@ -11,7 +11,8 @@ on:
         required: false
       draft:
         description: 'Set as draft release'
-        required: false
+        required: true
+        default: 'true'
       release_body:
         description: 'Release body'
         required: false
