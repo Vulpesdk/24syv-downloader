@@ -1,9 +1,21 @@
 name: Publish Binaries
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name for the release'
+        required: false
+      release_name:
+        description: 'Release name'
+        required: false
+      draft:
+        description: 'Set as draft release'
+        required: true
+        default: 'true'
+      release_body:
+        description: 'Release body'
+        required: false
 
 jobs:
   build-publish:
@@ -19,10 +31,146 @@ jobs:
           dotnet-version: '6.0'
 
       - name: Build and Publish for Windows x64
-        run: dotnet publish -r win-x64 --configuration Release -o binaries/win-x64
+        run: dotnet publish -r win-x64 --configuration Release -p:PublishSingleFile=true -p:PublishTrimmed=true -o binaries/win-x64 /p:SelfContained=true
 
-      - name: Upload Binaries
+      - name: Build and Publish for Windows x86
+        run: dotnet publish -r win-x86 --configuration Release -p:PublishSingleFile=true -p:PublishTrimmed=true -o binaries/win-x86 /p:SelfContained=true
+
+      - name: Build and Publish for Linux x64
+        run: dotnet publish -r linux-x64 --configuration Release -p:PublishSingleFile=true -p:PublishTrimmed=true -o binaries/linux-x64 /p:SelfContained=true
+
+      - name: Build and Publish for macOS x64
+        run: dotnet publish -r osx-x64 --configuration Release -p:PublishSingleFile=true -p:PublishTrimmed=true -o binaries/osx-x64 /p:SelfContained=true
+    
+      - name: Create Binary Archive
+        run: |
+          cd binaries
+          zip -r ../24syv-downloader-all-binaries.zip ./*
+        working-directory: ${{ github.workspace }}
+        
+      - name: Upload Binary Archive
         uses: actions/upload-artifact@v2
         with:
-          name: Windows Binaries
+          name: All Binaries Archive
+          path: 24syv-downloader-all-binaries.zip
+
+      - name: Upload Windows x64 Binaries
+        uses: actions/upload-artifact@v2
+        with:
+          name: Windows x64 Binaries
           path: binaries/win-x64
+
+      - name: Upload Windows x86 Binaries
+        uses: actions/upload-artifact@v2
+        with:
+          name: Windows x86 Binaries
+          path: binaries/win-x86
+
+      - name: Upload Linux x64 Binaries
+        uses: actions/upload-artifact@v2
+        with:
+          name: Linux x64 Binaries
+          path: binaries/linux-x64
+
+      - name: Upload macOS x64 Binaries
+        uses: actions/upload-artifact@v2
+        with:
+          name: macOS x64 Binaries
+          path: binaries/osx-x64
+
+  release:
+    needs: build-publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.event.inputs.tag_name || 'test' }}
+          release_name: ${{ github.event.inputs.release_name || 'test' }}
+          draft: ${{ github.event.inputs.draft }}
+          prerelease: false
+          body: ${{ github.event.inputs.release_body }}
+          
+      - name: Download Binary Archive
+        uses: actions/download-artifact@v2
+        with:
+          name: All Binaries Archive
+          path: binaries
+
+      - name: Upload Binary Archive
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: binaries/24syv-downloader-all-binaries.zip
+          asset_name: 24syv-downloader-all-binaries.zip
+          asset_content_type: application/zip
+
+      - name: Download Windows x64 Binaries
+        uses: actions/download-artifact@v2
+        with:
+          name: Windows x64 Binaries
+          path: binaries/win-x64
+
+      - name: Upload Windows x64 Binaries
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: binaries/win-x64/24syv-downloader.exe
+          asset_name: 24syv-downloader-win-x64.exe
+          asset_content_type: application/octet-stream
+
+      - name: Download Windows x86 Binaries
+        uses: actions/download-artifact@v2
+        with:
+          name: Windows x86 Binaries
+          path: binaries/win-x86
+
+      - name: Upload Windows x86 Binaries
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: binaries/win-x86/24syv-downloader.exe
+          asset_name: 24syv-downloader-win-x86.exe
+          asset_content_type: application/octet-stream
+
+      - name: Download Linux x64 Binaries
+        uses: actions/download-artifact@v2
+        with:
+          name: Linux x64 Binaries
+          path: binaries/linux-x64
+
+      - name: Upload Linux x64 Binaries
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: binaries/linux-x64/24syv-downloader
+          asset_name: 24syv-downloader-linux-x64
+          asset_content_type: application/octet-stream
+
+      - name: Download macOS x64 Binaries
+        uses: actions/download-artifact@v2
+        with:
+          name: macOS x64 Binaries
+          path: binaries/osx-x64
+
+      - name: Upload macOS x64 Binaries
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: binaries/osx-x64/24syv-downloader
+          asset_name: 24syv-downloader-osx-x64
+          asset_content_type: application/octet-stream
