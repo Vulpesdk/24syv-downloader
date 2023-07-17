@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net.Http;
-using System.Threading.Tasks;
-using Sharprompt;
+﻿using Sharprompt;
 using ShellProgressBar;
 
 internal class Program
@@ -20,10 +14,13 @@ internal class Program
 
                 var selectedFile = SelectOption(options);
 
-                var selectedFiles = PromptForFiles(selectedFile);
+                var pageSize = GetOptimalPageSize();
+                var selectedFiles = PromptForFiles(selectedFile, pageSize);
 
                 using var mainProgressBar = CreateMainProgressBar(selectedFiles.Count);
                 await DownloadFiles(selectedFiles, mainProgressBar);
+
+                RemoveFile(selectedFile); // Remove the selected file after download
 
                 Console.WriteLine("Download of all episodes completed :D");
                 Console.WriteLine();
@@ -44,6 +41,10 @@ internal class Program
         }
     }
 
+    /// <summary>
+    ///     Finds the __Bootstrap.txt file in the current directory.
+    /// </summary>
+    /// <returns>The path of the bootstrap file.</returns>
     private static string FindBootstrapFile()
     {
         while (true)
@@ -60,6 +61,11 @@ internal class Program
         }
     }
 
+    /// <summary>
+    ///     Extracts FileOption list from the given file.
+    /// </summary>
+    /// <param name="filePath">The path of the bootstrap file.</param>
+    /// <returns>List of FileOptions.</returns>
     private static List<FileOption> ExtractOptionsFromBootstrapFile(string filePath)
     {
         var options = new List<FileOption>();
@@ -82,10 +88,15 @@ internal class Program
         return options;
     }
 
+    /// <summary>
+    ///     Selects a FileOption from the provided list of options.
+    /// </summary>
+    /// <param name="options">List of FileOptions to choose from.</param>
+    /// <returns>The selected FileOption.</returns>
     private static FileOption SelectOption(List<FileOption> options)
     {
         var optionTexts = options.Select(option => Path.GetFileName(option.Path)).ToArray();
-        var selectedIndex = Prompt.Select("Choose a file to download:", optionTexts);
+        var selectedIndex = Prompt.Select("Choose a file to download", optionTexts);
         var selectedOption = options[Array.IndexOf(optionTexts, selectedIndex)];
 
         if (!File.Exists(selectedOption.Path))
@@ -100,20 +111,34 @@ internal class Program
         return selectedOption;
     }
 
-    private static List<FileOption> PromptForFiles(FileOption selectedFile)
+    /// <summary>
+    ///     Prompts the user to select files for downloading from the provided FileOption list.
+    /// </summary>
+    /// <param name="selectedFile">The initially selected FileOption.</param>
+    /// <param name="pageSize">The optimal page size for displaying prompts.</param>
+    /// <returns>List of selected FileOptions.</returns>
+    private static List<FileOption> PromptForFiles(FileOption selectedFile, int pageSize)
     {
         var selectedFileOptions = ExtractOptionsFromBootstrapFile(selectedFile.Path);
         var filesToDownload = selectedFileOptions.Except(new[] { selectedFile });
 
         var optionTexts = filesToDownload.Select(option => Path.GetFileName(option.Path)).ToArray();
-        var selectedOptionTexts = Prompt.MultiSelect("Choose files to download:", optionTexts);
+        var selectedOptionTexts =
+            Prompt.MultiSelect("Choose files to download, use left/right arrow keys for pagination", optionTexts,
+                pageSize);
 
-        var selectedFiles = filesToDownload.Where(option => selectedOptionTexts.Contains(Path.GetFileName(option.Path))).ToList();
+        var selectedFiles = filesToDownload
+            .Where(option => selectedOptionTexts.Contains(Path.GetFileName(option.Path)))
+            .ToList();
 
         return selectedFiles;
     }
 
-
+    /// <summary>
+    ///     Creates a progress bar for the main download process.
+    /// </summary>
+    /// <param name="totalFiles">The total number of files to download.</param>
+    /// <returns>A new ProgressBar instance.</returns>
     private static ProgressBar CreateMainProgressBar(int totalFiles)
     {
         var mainProgressBarOptions = new ProgressBarOptions
@@ -126,6 +151,12 @@ internal class Program
         return new ProgressBar(totalFiles, "Downloading Files", mainProgressBarOptions);
     }
 
+    /// <summary>
+    ///     Downloads the files from the provided list of options.
+    /// </summary>
+    /// <param name="options">List of FileOptions to download.</param>
+    /// <param name="mainProgressBar">The main progress bar.</param>
+    /// <returns>Task representing the asynchronous operation.</returns>
     private static async Task DownloadFiles(List<FileOption> options, ProgressBarBase mainProgressBar)
     {
         var tasks = options.Select(option => ProcessFileAsync(option, mainProgressBar)).ToArray();
@@ -133,6 +164,12 @@ internal class Program
         mainProgressBar.Tick(options.Count); // Update the main progress bar to 100%
     }
 
+    /// <summary>
+    ///     Processes a file asynchronously, downloading its content and updating the progress.
+    /// </summary>
+    /// <param name="option">The FileOption to process.</param>
+    /// <param name="mainProgressBar">The main progress bar.</param>
+    /// <returns>Task representing the asynchronous operation.</returns>
     private static async Task ProcessFileAsync(FileOption option, ProgressBarBase mainProgressBar)
     {
         var childProgressBarOptions = new ProgressBarOptions
@@ -156,7 +193,8 @@ internal class Program
         var lines = await File.ReadAllLinesAsync(tempFilePath);
         File.Delete(tempFilePath);
 
-        using var childProgressBar = mainProgressBar.Spawn(lines.Length, "Downloading: " + Path.GetFileName(option.Path),
+        using var childProgressBar = mainProgressBar.Spawn(lines.Length,
+            "Downloading: " + Path.GetFileName(option.Path),
             childProgressBarOptions);
 
         foreach (var line in lines)
@@ -174,33 +212,53 @@ internal class Program
             var directoryName = Path.GetDirectoryName(path);
 
             if (directoryName != null)
-            {
                 try
                 {
-                    using var client2 = new HttpClient();
-                    using var response2 = await client2.GetAsync(url);
-                    response2.EnsureSuccessStatusCode();
-                    var contentStream2 = await response2.Content.ReadAsStreamAsync();
+                    using var client = new HttpClient();
+                    using var response = await client.GetAsync(url);
+                    response.EnsureSuccessStatusCode();
+                    var contentStream = await response.Content.ReadAsStreamAsync();
 
-                    var tempfile2 = Path.GetTempFileName();
-                    await using (var fs2 = new FileStream(tempfile2, FileMode.OpenOrCreate))
+                    var tempfile = Path.GetTempFileName();
+                    await using (var fs = new FileStream(tempfile, FileMode.OpenOrCreate))
                     {
-                        await contentStream2.CopyToAsync(fs2);
+                        await contentStream.CopyToAsync(fs);
                     }
 
                     Directory.CreateDirectory(directoryName);
-                    File.Move(tempfile2, path);
+                    File.Move(tempfile, path);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"WARNING: Unable to download file from {url}. Error: {ex.Message}. Skipping download.");
+                    Console.WriteLine(
+                        $"WARNING: Unable to download file from {url}. Error: {ex.Message}. Skipping download.");
                 }
-            }
 
             childProgressBar.Tick();
         }
 
         mainProgressBar.Tick(); // Update the main progress bar after all child progress is complete
+    }
+
+    /// <summary>
+    ///     Removes the file represented by the given FileOption.
+    /// </summary>
+    /// <param name="file">The FileOption representing the file to be removed.</param>
+    private static void RemoveFile(FileOption file)
+    {
+        if (File.Exists(file.Path)) File.Delete(file.Path);
+    }
+
+    /// <summary>
+    ///     Calculates the optimal page size for displaying prompts.
+    /// </summary>
+    /// <returns>The optimal page size.</returns>
+    private static int GetOptimalPageSize()
+    {
+        var windowHeight = Console.WindowHeight;
+        var pageSize = windowHeight - 5;
+
+        return pageSize > 0 ? pageSize : 1;
     }
 }
 
