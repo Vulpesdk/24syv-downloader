@@ -106,8 +106,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: binaries/24syv-downloader-binaries.zip
-          asset_name: 24syv-downloader-binaries.zip
+          asset_path: binaries/24syv-downloader-all-binaries.zip
+          asset_name: 24syv-downloader-all-binaries.zip
           asset_content_type: application/zip
 
       - name: Download Windows x64 Binaries
