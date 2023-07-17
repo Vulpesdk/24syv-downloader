@@ -44,7 +44,8 @@ jobs:
     
       - name: Create Binary Archive
         run: |
-          zip -r binaries/24syv-downloader-all-binaries.zip binaries/
+          cd binaries
+          zip -r ../24syv-downloader-all-binaries.zip ./*
         working-directory: ${{ github.workspace }}
         
       - name: Upload Binary Archive
