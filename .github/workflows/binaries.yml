@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+    tags:
+      - '**'
+    paths-ignore:
+      - '**'
   workflow_dispatch:
     inputs:
       tag_name:
@@ -36,16 +40,16 @@ jobs:
           dotnet-version: '6.0'
 
       - name: Build and Publish for Windows x64
-        run: dotnet publish -r win-x64 --configuration Release -p:PublishSingleFile=true -p:PublishTrimmed=true -o binaries/win-x64
+        run: dotnet publish -r win-x64 --configuration Release -p:PublishSingleFile=true -p:PublishTrimmed=true -o binaries/win-x64 /p:SelfContained=true
 
       - name: Build and Publish for Windows x86
-        run: dotnet publish -r win-x86 --configuration Release -p:PublishSingleFile=true -p:PublishTrimmed=true -o binaries/win-x86
+        run: dotnet publish -r win-x86 --configuration Release -p:PublishSingleFile=true -p:PublishTrimmed=true -o binaries/win-x86 /p:SelfContained=true
 
       - name: Build and Publish for Linux x64
-        run: dotnet publish -r linux-x64 --configuration Release -p:PublishSingleFile=true -p:PublishTrimmed=true -o binaries/linux-x64
+        run: dotnet publish -r linux-x64 --configuration Release -p:PublishSingleFile=true -p:PublishTrimmed=true -o binaries/linux-x64 /p:SelfContained=true
 
       - name: Build and Publish for macOS x64
-        run: dotnet publish -r osx-x64 --configuration Release -p:PublishSingleFile=true -p:PublishTrimmed=true -o binaries/osx-x64
+        run: dotnet publish -r osx-x64 --configuration Release -p:PublishSingleFile=true -p:PublishTrimmed=true -o binaries/osx-x64 /p:SelfContained=true
 
       - name: Upload Windows x64 Binaries
         uses: actions/upload-artifact@v2
