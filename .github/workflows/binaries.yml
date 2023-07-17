@@ -157,3 +157,19 @@ jobs:
           asset_path: binaries/osx-x64/24syv-downloader
           asset_name: 24syv-downloader-osx-x64
           asset_content_type: application/octet-stream
+          
+      - name: Download Binary Archive
+        uses: actions/download-artifact@v2
+        with:
+          name: 24syv-downloader-binaries
+          path: binaries/24syv-downloader-binaries.zip
+
+      - name: Upload Binary Archive
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: binaries/24syv-downloader-binaries.zip
+          asset_name: 24syv-downloader-binaries.zip
+          asset_content_type: application/zip
