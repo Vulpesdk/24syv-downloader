@@ -13,15 +13,12 @@ on:
       tag_name:
         description: 'Tag name for the release'
         required: false
-        default: 'test'
       release_name:
         description: 'Release name'
         required: false
-        default: 'test'
       draft:
         description: 'Set as draft release'
         required: false
-        default: 'true'
       release_body:
         description: 'Release body'
         required: false
@@ -88,7 +85,7 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.tag_name || 'test' }}
           release_name: ${{ github.event.inputs.release_name || 'test' }}
-          draft: ${{ github.event.inputs.draft }}
+          draft: ${{ github.event.inputs.draft || 'true' }}
           prerelease: false
           body: ${{ github.event.inputs.release_body }}
 
