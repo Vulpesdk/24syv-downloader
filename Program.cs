@@ -3,14 +3,15 @@ using ShellProgressBar;
 
 internal class Program
 {
+    private static readonly string BootstrapUrl = "https://denkortewiki.dk/lister/__Bootstrap.txt";
+
     private static async Task Main()
     {
         try
         {
             while (true)
             {
-                var bootstrapFilePath = FindBootstrapFile();
-                var options = ExtractOptionsFromBootstrapFile(bootstrapFilePath);
+                var options = await ExtractOptionsFromBootstrapFile();
 
                 var selectedFile = SelectOption(options);
 
@@ -19,8 +20,6 @@ internal class Program
 
                 using var mainProgressBar = CreateMainProgressBar(selectedFiles.Count);
                 await DownloadFiles(selectedFiles, mainProgressBar);
-
-                RemoveFile(selectedFile); // Remove the selected file after download
 
                 Console.WriteLine("Download of all episodes completed :D");
                 Console.WriteLine();
@@ -42,48 +41,33 @@ internal class Program
     }
 
     /// <summary>
-    ///     Finds the __Bootstrap.txt file in the current directory.
-    /// </summary>
-    /// <returns>The path of the bootstrap file.</returns>
-    private static string FindBootstrapFile()
-    {
-        while (true)
-        {
-            var bootstrapFile = Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory, "__Bootstrap.txt")
-                .FirstOrDefault();
-
-            if (bootstrapFile != null)
-                return bootstrapFile;
-
-            Console.WriteLine("The __Bootstrap.txt file was not found. Please make sure it exists.");
-            Console.WriteLine("Press enter to retry...");
-            Console.ReadLine();
-        }
-    }
-
-    /// <summary>
     ///     Extracts FileOption list from the given file.
     /// </summary>
     /// <param name="filePath">The path of the bootstrap file.</param>
     /// <returns>List of FileOptions.</returns>
-    private static List<FileOption> ExtractOptionsFromBootstrapFile(string filePath)
+    private static async Task<List<FileOption>> ExtractOptionsFromBootstrapFile()
     {
         var options = new List<FileOption>();
 
-        var lines = File.ReadAllLines(filePath);
+        using var client = new HttpClient();
+        var response = await client.GetAsync(BootstrapUrl);
+        response.EnsureSuccessStatusCode();
+        var content = await response.Content.ReadAsStringAsync();
+
+        var lines = content.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
         foreach (var line in lines)
         {
-            var content = line.Split('\t');
-            if (content.Length == 2)
+            var parts = line.Split('\t');
+            if (parts.Length == 2)
             {
-                var url = content[0];
-                var path = content[1];
+                var url = parts[0];
+                var path = parts[1];
                 options.Add(new FileOption { Url = url, Path = path });
             }
         }
 
         if (options.Count == 0)
-            throw new Exception("No valid options were found in the file: " + filePath);
+            throw new Exception("No valid options were found in the file: " + BootstrapUrl);
 
         return options;
     }
@@ -119,8 +103,21 @@ internal class Program
     /// <returns>List of selected FileOptions.</returns>
     private static List<FileOption> PromptForFiles(FileOption selectedFile, int pageSize)
     {
-        var selectedFileOptions = ExtractOptionsFromBootstrapFile(selectedFile.Path);
-        var filesToDownload = selectedFileOptions.Except(new[] { selectedFile });
+        var lines = File.ReadAllLines(selectedFile.Path);
+
+        var options = new List<FileOption>();
+        foreach (var line in lines)
+        {
+            var content = line.Split('\t');
+            if (content.Length == 2)
+            {
+                var url = content[0];
+                var path = content[1];
+                options.Add(new FileOption { Url = url, Path = path });
+            }
+        }
+
+        var filesToDownload = options.Except(new[] { selectedFile });
 
         var optionTexts = filesToDownload.Select(option => Path.GetFileName(option.Path)).ToArray();
         var selectedOptionTexts =
@@ -238,15 +235,6 @@ internal class Program
         }
 
         mainProgressBar.Tick(); // Update the main progress bar after all child progress is complete
-    }
-
-    /// <summary>
-    ///     Removes the file represented by the given FileOption.
-    /// </summary>
-    /// <param name="file">The FileOption representing the file to be removed.</param>
-    private static void RemoveFile(FileOption file)
-    {
-        if (File.Exists(file.Path)) File.Delete(file.Path);
     }
 
     /// <summary>
